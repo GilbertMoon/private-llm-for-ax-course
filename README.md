@@ -47,7 +47,7 @@ Local LLM
 
 - Windows 10/11 기준
 - VS Code
-- Python 3.11 이상 권장
+- Python 3.11~3.13 권장
 - Git / GitHub
 - LM Studio
 - Streamlit
@@ -73,7 +73,16 @@ cd private-llm-for-ax-course
 code .
 ```
 
-### 4. Chapter 순서대로 진행
+### 4. Python 가상환경
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 5. Chapter 순서대로 진행
 
 각 Chapter의 `README.md`에는 다음이 포함됩니다.
 
@@ -84,6 +93,39 @@ code .
 정상 결과
 Evidence
 혼자 해보기
+```
+
+## Runtime Validation
+
+Chapter 02 이후에는 다음 문서를 기준으로 실제 실행 환경을 검증합니다.
+
+- [Runtime Validation Guide](./docs/RUNTIME_VALIDATION_GUIDE.md)
+
+LM Studio Local Server를 시작한 뒤 먼저 실행합니다.
+
+```powershell
+python scripts/runtime_preflight.py
+```
+
+정상적으로 `/v1/models`가 확인되면 실제 출력된 Model ID를 사용합니다.
+
+PowerShell 예:
+
+```powershell
+$env:CHAT_MODEL_ID="실제-chat-model-id"
+$env:EMBEDDING_MODEL_ID="실제-embedding-model-id"
+python scripts/runtime_validate.py
+```
+
+검증 순서:
+
+```text
+LM Studio Server
+→ /v1/models
+→ Chat Completion
+→ Embedding
+→ RAG
+→ Streamlit
 ```
 
 ## AI 활용 원칙
@@ -124,3 +166,4 @@ Evidence
 - 실제 회사의 민감 문서를 이 Public 저장소에 올리지 마세요.
 - API Key, Password, Token 등 Secret을 Commit하지 마세요.
 - 실습용 데이터는 `data/sample/`의 공개용 샘플만 사용합니다.
+- Local Server를 다른 PC에서 접근 가능하게 열 경우 인증, 방화벽, 접근 범위를 반드시 검토하세요.
