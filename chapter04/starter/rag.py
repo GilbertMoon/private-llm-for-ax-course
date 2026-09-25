@@ -13,17 +13,25 @@ EMBEDDING_MODEL_ID = os.getenv("EMBEDDING_MODEL_ID", "").strip()
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "sample" / "company_policy.txt"
 
 
-if not CHAT_MODEL_ID or not EMBEDDING_MODEL_ID:
-    raise SystemExit(
-        "CHAT_MODEL_ID와 EMBEDDING_MODEL_ID가 필요합니다. "
-        "scripts/runtime_preflight.py로 실제 Model ID를 확인한 뒤 환경변수를 설정하세요."
-    )
-
-
 client = OpenAI(
     base_url=BASE_URL,
     api_key="lm-studio",
 )
+
+
+def require_model_ids() -> None:
+    missing = []
+    if not CHAT_MODEL_ID:
+        missing.append("CHAT_MODEL_ID")
+    if not EMBEDDING_MODEL_ID:
+        missing.append("EMBEDDING_MODEL_ID")
+
+    if missing:
+        names = ", ".join(missing)
+        raise RuntimeError(
+            f"필수 환경변수가 없습니다: {names}. "
+            "scripts/runtime_preflight.py로 실제 Model ID를 확인한 뒤 설정하세요."
+        )
 
 
 def load_document(path: Path) -> str:
@@ -35,6 +43,7 @@ def split_into_chunks(text: str) -> list[str]:
 
 
 def embed_text(text: str) -> list[float]:
+    require_model_ids()
     response = client.embeddings.create(
         model=EMBEDDING_MODEL_ID,
         input=text,
@@ -76,6 +85,7 @@ def retrieve(question: str, index: list[dict], top_k: int = 3) -> list[dict]:
 
 
 def answer_question(question: str, retrieved: list[dict]) -> str:
+    require_model_ids()
     context = "\n\n".join(
         f"[Source: {item['source']} / Chunk: {item['chunk_id']}]\n{item['text']}"
         for item in retrieved
@@ -101,6 +111,7 @@ Context에 답이 없으면 "제공된 문서에서 확인할 수 없습니다."
 
 
 def main() -> None:
+    require_model_ids()
     document = load_document(DATA_PATH)
     chunks = split_into_chunks(document)
     index = build_index(chunks)
