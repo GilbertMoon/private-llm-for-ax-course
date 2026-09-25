@@ -45,3 +45,37 @@ jobs:
           test -f chapter06/README.md
           test -f scripts/runtime_preflight.py
           test -f scripts/runtime_validate.py
+          test -f tests/mock_openai_server.py
+
+      - name: Start mock OpenAI-compatible server
+        run: |
+          python tests/mock_openai_server.py > mock-server.log 2>&1 &
+          echo $! > mock-server.pid
+          sleep 2
+
+      - name: Validate OpenAI-compatible runtime path
+        env:
+          CHAT_MODEL_ID: mock-chat-model
+          EMBEDDING_MODEL_ID: mock-embedding-model
+          LM_STUDIO_BASE_URL: http://127.0.0.1:1234/v1
+        run: |
+          python scripts/runtime_validate.py
+
+      - name: Validate Chapter 03 starter against mock server
+        env:
+          CHAT_MODEL_ID: mock-chat-model
+          LM_STUDIO_BASE_URL: http://127.0.0.1:1234/v1
+        run: |
+          python chapter03/starter/app.py
+
+      - name: Validate Chapter 04 starter against mock server
+        env:
+          CHAT_MODEL_ID: mock-chat-model
+          EMBEDDING_MODEL_ID: mock-embedding-model
+          LM_STUDIO_BASE_URL: http://127.0.0.1:1234/v1
+        run: |
+          printf '부산 출장 숙박비 한도는 얼마인가요?\n' | python chapter04/starter/rag.py
+
+      - name: Show mock server log on failure
+        if: failure()
+        run: cat mock-server.log
