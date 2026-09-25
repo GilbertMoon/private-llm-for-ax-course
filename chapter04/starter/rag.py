@@ -1,13 +1,23 @@
+from __future__ import annotations
+
+import os
 from pathlib import Path
 
 import numpy as np
 from openai import OpenAI
 
 
-BASE_URL = "http://localhost:1234/v1"
-CHAT_MODEL_ID = "YOUR_CHAT_MODEL_ID"
-EMBEDDING_MODEL_ID = "YOUR_EMBEDDING_MODEL_ID"
+BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
+CHAT_MODEL_ID = os.getenv("CHAT_MODEL_ID", "").strip()
+EMBEDDING_MODEL_ID = os.getenv("EMBEDDING_MODEL_ID", "").strip()
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "sample" / "company_policy.txt"
+
+
+if not CHAT_MODEL_ID or not EMBEDDING_MODEL_ID:
+    raise SystemExit(
+        "CHAT_MODEL_ID와 EMBEDDING_MODEL_ID가 필요합니다. "
+        "scripts/runtime_preflight.py로 실제 Model ID를 확인한 뒤 환경변수를 설정하세요."
+    )
 
 
 client = OpenAI(
@@ -21,8 +31,7 @@ def load_document(path: Path) -> str:
 
 
 def split_into_chunks(text: str) -> list[str]:
-    chunks = [chunk.strip() for chunk in text.split("\n\n") if chunk.strip()]
-    return chunks
+    return [chunk.strip() for chunk in text.split("\n\n") if chunk.strip()]
 
 
 def embed_text(text: str) -> list[float]:
@@ -43,23 +52,21 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 
 
 def build_index(chunks: list[str]) -> list[dict]:
-    index = []
-    for i, chunk in enumerate(chunks):
-        index.append(
-            {
-                "chunk_id": i,
-                "text": chunk,
-                "embedding": embed_text(chunk),
-                "source": DATA_PATH.name,
-            }
-        )
-    return index
+    return [
+        {
+            "chunk_id": i,
+            "text": chunk,
+            "embedding": embed_text(chunk),
+            "source": DATA_PATH.name,
+        }
+        for i, chunk in enumerate(chunks)
+    ]
 
 
 def retrieve(question: str, index: list[dict], top_k: int = 3) -> list[dict]:
     question_embedding = embed_text(question)
-
     scored = []
+
     for item in index:
         score = cosine_similarity(question_embedding, item["embedding"])
         scored.append({**item, "score": score})
@@ -90,7 +97,7 @@ Context에 답이 없으면 "제공된 문서에서 확인할 수 없습니다."
         model=CHAT_MODEL_ID,
         messages=[{"role": "user", "content": prompt}],
     )
-    return response.choices[0].message.content
+    return response.choices[0].message.content or ""
 
 
 def main() -> None:
