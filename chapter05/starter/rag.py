@@ -1,13 +1,23 @@
+from __future__ import annotations
+
+import os
 from pathlib import Path
 
 import numpy as np
 from openai import OpenAI
 
 
-BASE_URL = "http://localhost:1234/v1"
-CHAT_MODEL_ID = "YOUR_CHAT_MODEL_ID"
-EMBEDDING_MODEL_ID = "YOUR_EMBEDDING_MODEL_ID"
+BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
+CHAT_MODEL_ID = os.getenv("CHAT_MODEL_ID", "").strip()
+EMBEDDING_MODEL_ID = os.getenv("EMBEDDING_MODEL_ID", "").strip()
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "sample" / "company_policy.txt"
+
+
+if not CHAT_MODEL_ID or not EMBEDDING_MODEL_ID:
+    raise SystemExit(
+        "CHAT_MODEL_ID와 EMBEDDING_MODEL_ID가 필요합니다. "
+        "scripts/runtime_preflight.py로 실제 Model ID를 확인한 뒤 환경변수를 설정하세요."
+    )
 
 
 client = OpenAI(base_url=BASE_URL, api_key="lm-studio")
@@ -85,4 +95,4 @@ Context에 답이 없으면 "제공된 문서에서 확인할 수 없습니다."
         model=CHAT_MODEL_ID,
         messages=[{"role": "user", "content": prompt}],
     )
-    return response.choices[0].message.content
+    return response.choices[0].message.content or ""
