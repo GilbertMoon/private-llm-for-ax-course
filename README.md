@@ -100,6 +100,7 @@ Evidence
 Chapter 02 이후에는 다음 문서를 기준으로 실제 실행 환경을 검증합니다.
 
 - [Runtime Validation Guide](./docs/RUNTIME_VALIDATION_GUIDE.md)
+- [Runtime Evidence Template](./docs/RUNTIME_EVIDENCE_TEMPLATE.md)
 
 LM Studio Local Server를 시작한 뒤 먼저 실행합니다.
 
@@ -125,8 +126,51 @@ LM Studio Server
 → Chat Completion
 → Embedding
 → RAG
+→ Grounded Answer
+→ Negative Test
 → Streamlit
+→ Failure Case
 ```
+
+## 실제 검증된 예시 환경
+
+2026-09-26 기준으로 다음 조합에서 Gate 0A~8을 실제 검증했습니다.
+
+```text
+Windows 11
+Python 3.12.10
+LM Studio 0.4.25
+Chat Model: qwen/qwen3-4b-2507
+Quantization: Q4_K_M
+Embedding Model: text-embedding-nomic-embed-text-v1.5
+Local API: http://localhost:1234/v1
+```
+
+이 값은 **예시 Evidence**이며, 학생 PC에서는 `/v1/models`에 실제로 나타나는 ID를 사용합니다.
+
+Positive RAG 검증 예:
+
+```text
+질문: 지방 출장 숙박비 한도는 얼마인가요?
+기대 답변: 지방 출장 숙박비는 1박 최대 100,000원입니다.
+```
+
+Negative 검증 예:
+
+```text
+질문: 해외 출장 시 항공권은 비즈니스석으로 이용할 수 있나요?
+기대 답변: 제공된 문서에서 확인할 수 없습니다.
+```
+
+## RAM / VRAM Evidence
+
+수업 PC에서 모델 Load 전후의 리소스 사용량도 Evidence로 남길 수 있습니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/windows_resource_evidence.ps1
+```
+
+NVIDIA GPU가 있으면 `nvidia-smi`를 통해 VRAM 사용량을 함께 표시합니다. Intel/AMD GPU는 Windows 작업 관리자 > 성능 > GPU에서 전용 GPU 메모리 사용량을 확인합니다.
 
 ## AI 활용 원칙
 
