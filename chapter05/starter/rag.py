@@ -39,11 +39,23 @@ def split_into_chunks(text: str) -> list[str]:
     return [chunk.strip() for chunk in text.split("\n\n") if chunk.strip()]
 
 
-def embed_text(text: str) -> list[float]:
+def prepare_embedding_input(text: str, task: str) -> str:
+    """Add task prefixes required by Nomic Embed retrieval models."""
+    if "nomic-embed-text" not in EMBEDDING_MODEL_ID.lower():
+        return text
+
+    if task == "document":
+        return f"search_document: {text}"
+    if task == "query":
+        return f"search_query: {text}"
+    raise ValueError(f"지원하지 않는 embedding task입니다: {task}")
+
+
+def embed_text(text: str, task: str) -> list[float]:
     require_model_ids()
     response = client.embeddings.create(
         model=EMBEDDING_MODEL_ID,
-        input=text,
+        input=prepare_embedding_input(text, task),
     )
     return response.data[0].embedding
 
@@ -63,7 +75,7 @@ def build_index() -> list[dict]:
         {
             "chunk_id": i,
             "text": chunk,
-            "embedding": embed_text(chunk),
+            "embedding": embed_text(chunk, task="document"),
             "source": DATA_PATH.name,
         }
         for i, chunk in enumerate(chunks)
@@ -71,7 +83,7 @@ def build_index() -> list[dict]:
 
 
 def retrieve(question: str, index: list[dict], top_k: int = 3) -> list[dict]:
-    question_embedding = embed_text(question)
+    question_embedding = embed_text(question, task="query")
     scored = []
 
     for item in index:
