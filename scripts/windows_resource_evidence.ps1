@@ -1,6 +1,6 @@
 $ErrorActionPreference = "SilentlyContinue"
 
-Write-Host "=== Private LLM for AX — Windows Resource Evidence ==="
+Write-Host "=== Private LLM for AX - Windows Resource Evidence ==="
 Write-Host ""
 
 $os = Get-CimInstance Win32_OperatingSystem
@@ -18,7 +18,7 @@ Write-Host ("RAM Used : {0} GB" -f $usedRamGB)
 Write-Host ("RAM Free : {0} GB" -f $freeRamGB)
 Write-Host ""
 
-Write-Host "=== GPU (Windows CIM) ==="
+Write-Host "=== GPU (Windows CIM - informational only) ==="
 foreach ($gpu in $gpus) {
     $adapterRamGB = if ($gpu.AdapterRAM) {
         [math]::Round($gpu.AdapterRAM / 1GB, 2)
@@ -37,6 +37,7 @@ if ($nvidiaSmi) {
     & nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free,utilization.gpu --format=csv,noheader,nounits
     Write-Host ""
     Write-Host "Columns: name, VRAM total MB, VRAM used MB, VRAM free MB, GPU utilization %"
+    Write-Host "Use the nvidia-smi values as the authoritative NVIDIA VRAM runtime evidence."
 } else {
     Write-Host "=== NVIDIA GPU Runtime ==="
     Write-Host "nvidia-smi not found."
