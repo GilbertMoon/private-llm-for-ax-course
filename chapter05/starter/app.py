@@ -1,4 +1,5 @@
 import streamlit as st
+from openai import APIConnectionError
 
 from rag import build_index, generate_answer, retrieve
 
@@ -8,6 +9,13 @@ st.title("🔒 Private AI Assistant")
 st.caption("교육용 샘플 회사 규정을 기반으로 답변합니다.")
 
 
+def show_connection_error() -> None:
+    st.error(
+        "LM Studio Local Server에 연결할 수 없습니다. "
+        "LM Studio의 Developer > Local Server에서 서버가 Running 상태인지 확인해 주세요."
+    )
+
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -15,6 +23,9 @@ if "index" not in st.session_state:
     try:
         with st.spinner("문서 인덱스를 준비하고 있습니다..."):
             st.session_state.index = build_index()
+    except APIConnectionError:
+        show_connection_error()
+        st.stop()
     except Exception as exc:
         st.error(f"초기화 오류: {exc}")
         st.stop()
@@ -50,5 +61,7 @@ if question:
 
         st.session_state.messages.append({"role": "assistant", "content": answer})
 
+    except APIConnectionError:
+        show_connection_error()
     except Exception as exc:
         st.error(f"처리 중 오류가 발생했습니다: {exc}")
