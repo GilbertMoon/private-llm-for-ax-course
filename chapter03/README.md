@@ -25,49 +25,128 @@ Python Application
 
 ## STEP 1. Local Server 시작
 
-LM Studio에서 Local Server를 시작합니다.
+LM Studio에서 다음 화면으로 이동합니다.
 
-기본 실습 주소 예:
+```text
+Developer
+→ Local Server
+→ Status: Running
+```
+
+기본 실습 주소:
 
 ```text
 http://localhost:1234
 ```
 
-## STEP 2. Model 목록 확인
+PowerShell에서 Port를 확인합니다.
+
+```powershell
+Test-NetConnection localhost -Port 1234
+```
+
+정상 목표:
+
+```text
+TcpTestSucceeded : True
+```
+
+> `::1` IPv6 연결 경고가 먼저 나오더라도 최종적으로 `127.0.0.1`에 대해 `TcpTestSucceeded : True`이면 정상입니다.
+
+## STEP 2. 실제 Model ID 확인
 
 PowerShell:
 
 ```powershell
-Invoke-RestMethod http://localhost:1234/v1/models
+(Invoke-RestMethod http://localhost:1234/v1/models).data.id
 ```
 
-정상 결과:
+또는 프로젝트 Preflight:
+
+```powershell
+python scripts/runtime_preflight.py
+```
+
+인터넷 예제의 Model 이름을 복사하지 말고 **현재 LM Studio가 반환한 실제 Model ID**를 사용합니다.
+
+2026-09-26 실제 검증 예:
 
 ```text
-현재 Server가 인식하는 Model 목록 반환
+qwen/qwen3-4b-2507
+text-embedding-nomic-embed-text-v1.5
 ```
 
-인터넷 예제의 Model 이름을 복사하지 말고 **여기서 확인한 실제 Model ID**를 사용합니다.
+Chapter 03에서는 Chat Model ID를 사용합니다.
 
 ## STEP 3. Python 환경 준비
+
+이 저장소의 **루트 폴더**에서 실행합니다.
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-pip install -r ..\requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-## STEP 4. Starter 코드 확인
+이미 Chapter 02에서 가상환경과 패키지를 준비했다면 다시 만들 필요는 없습니다.
 
-[`starter/app.py`](./starter/app.py)를 엽니다.
-
-`YOUR_MODEL_ID`를 STEP 2에서 확인한 값으로 바꿉니다.
-
-## STEP 5. 실행
+정상 확인:
 
 ```powershell
-python starter\app.py
+python -m pip show openai
+```
+
+## STEP 4. Chat Model 환경변수 설정
+
+Starter 코드를 직접 수정하지 않습니다.
+
+STEP 2에서 확인한 실제 Chat Model ID를 PowerShell 환경변수로 설정합니다.
+
+실제 검증 예:
+
+```powershell
+$env:CHAT_MODEL_ID="qwen/qwen3-4b-2507"
+```
+
+필요한 경우 Base URL도 명시할 수 있습니다.
+
+```powershell
+$env:LM_STUDIO_BASE_URL="http://localhost:1234/v1"
+```
+
+현재 값 확인:
+
+```powershell
+$env:CHAT_MODEL_ID
+$env:LM_STUDIO_BASE_URL
+```
+
+> PowerShell 환경변수는 현재 Terminal 세션에 적용됩니다. 새 Terminal을 열면 다시 설정할 수 있습니다.
+
+## STEP 5. Runtime Validator 실행
+
+먼저 최소 Runtime Gate를 확인합니다.
+
+```powershell
+python scripts/runtime_validate.py
+```
+
+Chapter 04용 Embedding Model까지 준비되어 있다면 Models / Chat / Embedding 세 Gate가 모두 PASS할 수 있습니다.
+
+Chapter 03의 핵심 확인은 다음입니다.
+
+```text
+/v1/models 응답
+Chat Completion 응답
+```
+
+## STEP 6. Starter 실행
+
+저장소 루트에서 실행합니다.
+
+```powershell
+python chapter03\starter\app.py
 ```
 
 정상 결과:
@@ -81,26 +160,43 @@ Python
 
 ## 핵심 코드
 
+[`starter/app.py`](./starter/app.py)는 다음 구조를 사용합니다.
+
 ```python
 client = OpenAI(
-    base_url="http://localhost:1234/v1",
+    base_url=BASE_URL,
     api_key="lm-studio",
 )
 ```
 
-이번 장에서 가장 중요한 것은 `base_url`입니다.
+그리고 실제 모델은 코드에 하드코딩하지 않고:
+
+```python
+MODEL_ID = os.getenv("CHAT_MODEL_ID", "").strip()
+```
+
+로 읽습니다.
+
+이번 장에서 가장 중요한 것은 `base_url`과 Model ID의 출처입니다.
 
 ```text
-Public
+Public API
 → 외부 Provider Endpoint
 
-Local
+Local API
 → localhost Endpoint
+
+Model ID
+→ /v1/models 실제 응답
 ```
 
 ## 실패 실습 1. Server Stop
 
 LM Studio Server를 중지한 뒤 다시 실행합니다.
+
+```powershell
+python chapter03\starter\app.py
+```
 
 예상:
 
@@ -108,14 +204,33 @@ LM Studio Server를 중지한 뒤 다시 실행합니다.
 Connection Error
 ```
 
+다시 LM Studio Local Server를 `Running`으로 되돌린 후 정상 실행되는지 재검증합니다.
+
 ## 실패 실습 2. Wrong Model ID
 
-존재하지 않는 Model ID로 변경합니다.
+현재 값을 먼저 확인합니다.
+
+```powershell
+$env:CHAT_MODEL_ID
+```
+
+존재하지 않는 Model ID를 임시로 설정합니다.
+
+```powershell
+$env:CHAT_MODEL_ID="not-a-real-model"
+python chapter03\starter\app.py
+```
 
 예상:
 
 ```text
 Model 관련 오류
+```
+
+실습 후 실제 ID로 복원합니다.
+
+```powershell
+$env:CHAT_MODEL_ID="qwen/qwen3-4b-2507"
 ```
 
 따라서:
@@ -130,9 +245,11 @@ Model 선택 실패
 
 ```text
 Local Server Running
+TcpTestSucceeded : True
 /v1/models 응답
-실제 Model ID
-python starter/app.py 실행 결과
+실제 Chat Model ID
+runtime_validate.py Chat PASS
+chapter03/starter/app.py 실행 결과
 Server Stop 오류
 Wrong Model ID 오류
 ```
@@ -153,8 +270,9 @@ Wrong Model ID 오류
 
 ```text
 [ ] Local Server를 시작했다.
+[ ] Port 1234 연결을 확인했다.
 [ ] /v1/models를 확인했다.
-[ ] 실제 Model ID를 사용했다.
+[ ] 실제 Chat Model ID를 환경변수로 설정했다.
 [ ] Python에서 Local LLM을 호출했다.
 [ ] Server Stop 오류를 확인했다.
 [ ] Wrong Model ID 오류를 확인했다.
