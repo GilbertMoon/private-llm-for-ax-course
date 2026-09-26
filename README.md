@@ -79,7 +79,7 @@ code .
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ### 5. Chapter 순서대로 진행
@@ -101,6 +101,7 @@ Chapter 02 이후에는 다음 문서를 기준으로 실제 실행 환경을 �
 
 - [Runtime Validation Guide](./docs/RUNTIME_VALIDATION_GUIDE.md)
 - [Runtime Evidence Template](./docs/RUNTIME_EVIDENCE_TEMPLATE.md)
+- [Validated Runtime Evidence — 2026-09-26](./docs/RUNTIME_EVIDENCE_2026-09-26.md)
 
 LM Studio Local Server를 시작한 뒤 먼저 실행합니다.
 
